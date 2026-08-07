@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "module": "node16",
+    "moduleResolution": "node16",
+    "types": ["node"],
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
@@ -12,11 +13,10 @@
     "noUncheckedIndexedAccess": true,
     "resolveJsonModule": true,
     "outDir": "./dist",
-    "rootDir": "./src",
     "sourceMap": true,
     "declaration": true,
     "incremental": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "prisma.config.ts"],
   "exclude": ["node_modules", "dist"]
 }

@@ -1,0 +1,203 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+ 
+}
+
+enum OwnerType {
+  INDIVIDUAL
+  BUSINESS
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AuthProvider{
+  GOOGLE 
+  PASSWORD 
+  MAGIC_LINK
+
+}
+enum FulfillmentType{
+ PICKUP
+ DELIVERY
+ BOTH
+
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_REVIEW
+  LIVE
+  PAUSED
+}
+
+enum BookingStatus {
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  PAYMENT_PENDING
+  PAYMENT_FAILED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum DepositHoldStatus {
+  HELD
+  RELEASED
+  DISPUTED
+  REFUNDED
+}
+
+enum DisputeStatus {
+  PENDING_RESOLUTION
+  RESOLVED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now())
+
+  authIdentities AuthIdentity[]
+  ownerProfile   OwnerProfile?
+  bookings       Booking[]
+  disputesOpened Dispute[]
+}
+
+model AuthIdentity {
+  id               String       @id @default(uuid())
+  userId           String
+  provider         AuthProvider
+  providerUserId   String?
+  passwordHash     String?
+  emailVerified    Boolean      @default(false)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerUserId])
+}
+
+model OwnerProfile {
+  id                 String              @id @default(uuid())
+  userId             String              @unique
+  type               OwnerType
+  businessName       String?
+  verificationStatus VerificationStatus  @default(APPROVED)
+
+  user     User      @relation(fields: [userId], references: [id])
+  listings Listing[]
+}
+
+model Category {
+  id   String @id @default(uuid())
+  name String @unique
+  slug String @unique
+
+  listings Listing[]
+}
+
+model Listing {
+  id              String          @id @default(uuid())
+  ownerId         String
+  categoryId      String
+  title           String
+  quantityTotal   Int
+  pricePerDay     Decimal         @db.Decimal(10, 2)
+  depositAmount   Decimal         @db.Decimal(10, 2)
+  fulfillmentType FulfillmentType
+  status          ListingStatus   @default(DRAFT)
+  createdAt       DateTime        @default(now())
+  
+  bookings Booking[]
+  images       ListingImage[]
+  pricingTiers PricingTier[]
+
+  owner    OwnerProfile @relation(fields: [ownerId], references: [id])
+  category Category     @relation(fields: [categoryId], references: [id])
+}
+
+model ListingImage {
+  id        String @id @default(uuid())
+  listingId String
+  url       String
+  sortOrder Int
+
+  listing Listing @relation(fields: [listingId], references: [id])
+}
+
+model PricingTier {
+  id          String  @id @default(uuid())
+  listingId   String
+  minDays     Int
+  pricePerDay Decimal @db.Decimal(10, 2)
+
+  listing Listing @relation(fields: [listingId], references: [id])
+}
+
+model Booking {
+  id          String        @id @default(uuid())
+  renterId    String
+  listingId   String
+  quantity    Int
+  startDate   DateTime      @db.Date
+  endDate     DateTime      @db.Date
+  status      BookingStatus @default(PAYMENT_PENDING)
+  totalPrice  Decimal       @db.Decimal(10, 2)
+  createdAt   DateTime      @default(now())
+  
+  payment     Payment?
+  depositHold DepositHold?
+  renter  User    @relation(fields: [renterId], references: [id])
+  listing Listing @relation(fields: [listingId], references: [id])
+}
+
+model Payment {
+  id                    String        @id @default(uuid())
+  bookingId             String        @unique
+  stripePaymentIntentId String
+  amount                Decimal       @db.Decimal(10, 2)
+  status                PaymentStatus @default(PENDING)
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+}
+
+model DepositHold {
+  id            String            @id @default(uuid())
+  bookingId     String            @unique
+  amount        Decimal           @db.Decimal(10, 2)
+  status        DepositHoldStatus @default(HELD)
+  autoReleaseAt DateTime
+
+  booking  Booking  @relation(fields: [bookingId], references: [id])
+  dispute  Dispute?
+}
+
+model Dispute {
+  id            String        @id @default(uuid())
+  depositHoldId String        @unique
+  openedById    String
+  reason        String
+  status        DisputeStatus @default(PENDING_RESOLUTION)
+
+  depositHold DepositHold @relation(fields: [depositHoldId], references: [id])
+  openedBy    User        @relation(fields: [openedById], references: [id])
+}
