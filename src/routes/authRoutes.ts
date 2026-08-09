@@ -6,3 +6,5 @@ export const authRoutes = Router();
 
 authRoutes.post("/register", authRateLimiter, authController.register);
 authRoutes.post("/login", authRateLimiter, authController.login);
+authRoutes.post("/refresh", authRateLimiter, authController.refresh);
+authRoutes.post("/logout", authController.logout);

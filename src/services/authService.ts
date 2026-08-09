@@ -4,6 +4,7 @@ import { signAccessToken, signRefreshToken } from "../lib/token";
 import { AppError } from "../middleware/errorHandler";
 import { AuthProvider } from "../generated/prisma/client";
 import type { RegisterInput, LoginInput } from "../types/auth";
+import { verifyRefreshToken } from "../lib/token";
 
 export const authService = {
   async register(input: RegisterInput) {
@@ -38,6 +39,17 @@ export const authService = {
     if (!isValid) throw genericError();
 
     return issueTokens(user.id);
+  },
+
+  async refresh(refreshToken: string) {
+    let payload;
+    try {
+      payload = verifyRefreshToken(refreshToken);
+    } catch {
+      throw new AppError(401, "INVALID_REFRESH_TOKEN", "Invalid or expired refresh token");
+    }
+
+    return issueTokens(payload.userId);
   },
 };
 
