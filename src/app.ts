@@ -5,6 +5,8 @@ import cookieParser from "cookie-parser";
 import { errorHandler } from "./middleware/errorHandler";
 import { authRoutes } from "./routes/authRoutes";
 import { env } from "./lib/env";
+import swaggerUi from "swagger-ui-express";
+import { generateOpenApiDocument } from "./lib/openapi";
 
 export const app = express();
 
@@ -24,4 +26,8 @@ app.get("/health", (_req, res) => {
 // app.use("/bookings", bookingRoutes);
 
 app.use("/auth", authRoutes);
+const openApiDocument = generateOpenApiDocument();
+app.get("/openapi.json", (_req, res) => res.json(openApiDocument));
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
+
 app.use(errorHandler);
