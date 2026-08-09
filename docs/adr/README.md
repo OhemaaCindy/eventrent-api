@@ -11,3 +11,4 @@ Each ADR captures one real decision: the context that forced it, what we chose, 
 | [0005](./0005-inventory-model.md) | Quantity-based stock instead of whole-set-only | Accepted |
 | [0006](./0006-deposit-release-model.md) | Owner-confirms + auto-release-timer for deposits | Accepted |
 | [0007](./0007-unified-auth-identity-model.md) | Unified user + auth_identities model for multi-method login | Accepted |
+| [0008](./0008-auth-security-posture.md) | Auth security posture: hashing, tokens, rate limiting, enumeration protection | Accepted |
