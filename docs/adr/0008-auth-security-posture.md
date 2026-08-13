@@ -1,0 +1,1 @@
+Auth security posture: hashing, tokens, rate limiting, enumeration protection 

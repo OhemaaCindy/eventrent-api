@@ -26,7 +26,9 @@ app.get("/health", (_req, res) => {
 // app.use("/bookings", bookingRoutes);
 
 app.use("/auth", authRoutes);
-const openApiDocument = generateOpenApiDocument();
+
+// OpenAPI documentation
+const openApiDocument = generateOpenApiDocument(); 
 app.get("/openapi.json", (_req, res) => res.json(openApiDocument));
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
 

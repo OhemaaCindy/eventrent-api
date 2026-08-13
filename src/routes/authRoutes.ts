@@ -8,3 +8,5 @@ authRoutes.post("/register", authRateLimiter, authController.register);
 authRoutes.post("/login", authRateLimiter, authController.login);
 authRoutes.post("/refresh", authRateLimiter, authController.refresh);
 authRoutes.post("/logout", authController.logout);
+authRoutes.post("/magic-link", authRateLimiter, authController.requestMagicLink);
+authRoutes.get("/magic-link/verify", authController.verifyMagicLink);

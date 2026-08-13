@@ -95,6 +95,14 @@ model AuthIdentity {
 
   @@unique([provider, providerUserId])
 }
+model MagicLinkToken {
+  id        String    @id @default(uuid())
+  email     String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
 
 model OwnerProfile {
   id                 String              @id @default(uuid())
@@ -201,3 +209,4 @@ model Dispute {
   depositHold DepositHold @relation(fields: [depositHoldId], references: [id])
   openedBy    User        @relation(fields: [openedById], references: [id])
 }
+

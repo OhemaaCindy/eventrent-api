@@ -5,6 +5,10 @@ import { AppError } from "../middleware/errorHandler";
 import { AuthProvider } from "../generated/prisma/client";
 import type { RegisterInput, LoginInput } from "../types/auth";
 import { verifyRefreshToken } from "../lib/token";
+import crypto from "crypto";
+import { magicLinkRepository } from "../repositories/magicLinkRepository";
+import { emailSender } from "../lib/email";
+
 
 export const authService = {
   async register(input: RegisterInput) {
@@ -50,6 +54,39 @@ export const authService = {
     }
 
     return issueTokens(payload.userId);
+  },
+
+  async requestMagicLink(email: string) {
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 min
+
+    await magicLinkRepository.create(email, tokenHash, expiresAt);
+
+    const link = `http://localhost:5173/auth/magic-link/verify?token=${rawToken}`;
+    await emailSender.sendMagicLink(email, link);
+
+    // Always return success, whether or not the email exists — same enumeration
+    // protection principle as login. We don't want to confirm/deny account existence.
+  },
+
+  async verifyMagicLink(rawToken: string) {
+    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+    const record = await magicLinkRepository.findValidByHash(tokenHash);
+
+    if (!record) {
+      throw new AppError(401, "INVALID_MAGIC_LINK", "This link is invalid or has expired");
+    }
+
+    await magicLinkRepository.markUsed(record.id);
+
+    let user = await authRepository.findUserByEmail(record.email);
+
+    if (!user) {
+      user = await authRepository.createUserWithMagicLink(record.email);
+    }
+
+    return issueTokens(user.id);
   },
 };
 

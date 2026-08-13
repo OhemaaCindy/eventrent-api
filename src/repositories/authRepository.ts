@@ -31,4 +31,20 @@ export const authRepository = {
       include: { authIdentities: true },
     });
   },
+
+  async createUserWithMagicLink(email: string) {
+    return prisma.user.create({
+      data: {
+        email,
+        name: email.split("@")[0] ?? email, // placeholder name, user can update later
+        authIdentities: {
+          create: {
+            provider: AuthProvider.MAGIC_LINK,
+            emailVerified: true, // clicking the emailed link proves ownership
+          },
+        },
+      },
+      include: { authIdentities: true },
+    });
+  },
 };
