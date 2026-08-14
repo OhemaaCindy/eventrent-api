@@ -8,6 +8,7 @@ import { verifyRefreshToken } from "../lib/token";
 import crypto from "crypto";
 import { magicLinkRepository } from "../repositories/magicLinkRepository";
 import { emailSender } from "../lib/email";
+import { exchangeCodeForUserInfo } from "../lib/googleOAuth";
 
 
 export const authService = {
@@ -88,6 +89,16 @@ export const authService = {
 
     return issueTokens(user.id);
   },
+
+  async loginWithGoogle(code: string) {
+  const googleUser = await exchangeCodeForUserInfo(code);
+  const user = await authRepository.findOrCreateGoogleUser(
+    googleUser.sub,
+    googleUser.email,
+    googleUser.name
+  );
+  return issueTokens(user.id);
+},
 };
 
 function issueTokens(userId: string) {

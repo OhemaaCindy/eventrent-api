@@ -10,3 +10,5 @@ authRoutes.post("/refresh", authRateLimiter, authController.refresh);
 authRoutes.post("/logout", authController.logout);
 authRoutes.post("/magic-link", authRateLimiter, authController.requestMagicLink);
 authRoutes.get("/magic-link/verify", authController.verifyMagicLink);
+authRoutes.get("/google", authController.redirectToGoogle);
+authRoutes.get("/google/callback", authController.googleCallback);

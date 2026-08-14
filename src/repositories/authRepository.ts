@@ -47,4 +47,43 @@ export const authRepository = {
       include: { authIdentities: true },
     });
   },
+
+  async findOrCreateGoogleUser(googleId: string, email: string, name: string) {
+  const existingIdentity = await prisma.authIdentity.findFirst({
+    where: { provider: AuthProvider.GOOGLE, providerUserId: googleId },
+    include: { user: true },
+  });
+
+  if (existingIdentity) {
+    return existingIdentity.user;
+  }
+
+  const existingUserByEmail = await prisma.user.findUnique({ where: { email } });
+
+  if (existingUserByEmail) {
+    await prisma.authIdentity.create({
+      data: {
+        userId: existingUserByEmail.id,
+        provider: AuthProvider.GOOGLE,
+        providerUserId: googleId,
+        emailVerified: true,
+      },
+    });
+    return existingUserByEmail;
+  }
+
+  return prisma.user.create({
+    data: {
+      email,
+      name,
+      authIdentities: {
+        create: {
+          provider: AuthProvider.GOOGLE,
+          providerUserId: googleId,
+          emailVerified: true,
+        },
+      },
+    },
+  });
+}
 };

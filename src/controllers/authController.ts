@@ -2,6 +2,9 @@ import { Request, Response, NextFunction } from "express";
 import { authService } from "../services/authService";
 import { registerSchema, loginSchema } from "../types/auth";
 import { AppError } from "../middleware/errorHandler";
+import crypto from "crypto";
+import { buildGoogleAuthUrl } from "../lib/googleOAuth";
+import { env } from "../lib/env";
 
 const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,
@@ -85,4 +88,41 @@ export const authController = {
       next(err);
     }
   },
+
+  redirectToGoogle(_req: Request, res: Response) {
+  const state = crypto.randomBytes(16).toString("hex");
+
+  res.cookie("oauth_state", state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 5 * 60 * 1000, // 5 minutes — this cookie only needs to survive the round trip to Google and back
+  });
+
+  res.redirect(buildGoogleAuthUrl(state));
+},
+
+async googleCallback(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { code, state } = req.query;
+    const savedState = req.cookies.oauth_state;
+
+    res.clearCookie("oauth_state");
+
+    if (!state || state !== savedState) {
+      throw new AppError(401, "INVALID_OAUTH_STATE", "OAuth state mismatch — possible CSRF attempt");
+    }
+
+    if (!code || typeof code !== "string") {
+      throw new AppError(400, "MISSING_CODE", "No authorization code received from Google");
+    }
+
+    const { refreshToken } = await authService.loginWithGoogle(code);
+
+    res.cookie("refreshToken", refreshToken, REFRESH_COOKIE_OPTIONS);
+    res.redirect(`${env.FRONTEND_URL}/auth/callback`);
+  } catch (err) {
+    next(err);
+  }
+},
 };

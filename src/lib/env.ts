@@ -7,7 +7,11 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   JWT_ACCESS_SECRET: z.string().min(32, "JWT_ACCESS_SECRET must be at least 32 characters"),
   JWT_REFRESH_SECRET: z.string().min(32, "JWT_REFRESH_SECRET must be at least 32 characters"),
-  CORS_ORIGIN: z.string().default("http://localhost:5173"), // adjust to your actual frontend dev port
+  CORS_ORIGIN: z.string().default("http://localhost:5173"),
+  FRONTEND_URL: z.string().default("http://localhost:5173"),
+  GOOGLE_CLIENT_ID: z.string().min(1, "GOOGLE_CLIENT_ID is required"),
+  GOOGLE_CLIENT_SECRET: z.string().min(1, "GOOGLE_CLIENT_SECRET is required"),
+  GOOGLE_REDIRECT_URI: z.string().min(1, "GOOGLE_REDIRECT_URI is required"),
 });
 
 const parsed = envSchema.safeParse(process.env);
