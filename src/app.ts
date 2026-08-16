@@ -7,6 +7,7 @@ import { authRoutes } from "./routes/authRoutes";
 import { env } from "./lib/env";
 import swaggerUi from "swagger-ui-express";
 import { generateOpenApiDocument } from "./lib/openapi";
+import { ownerRoutes } from "./routes/ownerRoutes";
 
 export const app = express();
 
@@ -26,7 +27,7 @@ app.get("/health", (_req, res) => {
 // app.use("/bookings", bookingRoutes);
 
 app.use("/auth", authRoutes);
-
+app.use("/owners", ownerRoutes);
 // OpenAPI documentation
 const openApiDocument = generateOpenApiDocument(); 
 app.get("/openapi.json", (_req, res) => res.json(openApiDocument));
