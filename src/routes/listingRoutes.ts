@@ -5,3 +5,5 @@ import { authMiddleware } from "../middleware/authMiddleware";
 export const listingRoutes = Router();
 
 listingRoutes.post("/", authMiddleware, listingController.create);
+listingRoutes.get("/", listingController.list);
+listingRoutes.get("/:id", listingController.getById);

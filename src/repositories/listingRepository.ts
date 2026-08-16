@@ -22,4 +22,20 @@ export const listingRepository = {
       data: { ownerId, ...input, status },
     });
   },
+
+  findMany() {
+  return prisma.listing.findMany({
+    where: { status: ListingStatus.LIVE },
+    include: { category: true, images: true, pricingTiers: true },
+    orderBy: { createdAt: "desc" },
+  });
+},
+
+findById(id: string) {
+  return prisma.listing.findUnique({
+    where: { id },
+    include: { category: true, images: true, pricingTiers: true, owner: true },
+  });
+},
 };
+

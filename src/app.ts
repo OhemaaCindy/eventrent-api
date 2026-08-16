@@ -9,6 +9,8 @@ import swaggerUi from "swagger-ui-express";
 import { generateOpenApiDocument } from "./lib/openapi";
 import { ownerRoutes } from "./routes/ownerRoutes";
 import { listingRoutes } from "./routes/listingRoutes";
+import { categoryRoutes } from "./routes/categoryRoutes";
+import { bookingRoutes } from "./routes/bookingRoutes";
 
 export const app = express();
 
@@ -30,6 +32,8 @@ app.get("/health", (_req, res) => {
 app.use("/auth", authRoutes);
 app.use("/owners", ownerRoutes);
 app.use("/listings", listingRoutes);
+app.use("/categories", categoryRoutes);
+app.use("/bookings", bookingRoutes);
 
 // OpenAPI documentation
 const openApiDocument = generateOpenApiDocument(); 

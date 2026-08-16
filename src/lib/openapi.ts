@@ -6,6 +6,7 @@ import { registerSchema, loginSchema } from "../types/auth";
 import { z } from "zod";
 import { createOwnerProfileSchema } from "../types/owner";
 import { createListingSchema } from "../types/listing";
+import { createBookingSchema } from "../types/booking";
 
 const registry = new OpenAPIRegistry();
 
@@ -161,6 +162,62 @@ registry.registerPath({
     201: { description: "Listing created (LIVE if owner is verified, PENDING_REVIEW otherwise)" },
     400: { description: "Invalid category" },
     403: { description: "User has no owner profile" },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/categories",
+  tags: ["Categories"],
+  summary: "List all equipment categories",
+  responses: {
+    200: { description: "Array of categories" },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/listings",
+  tags: ["Listings"],
+  summary: "Browse all live listings",
+  responses: {
+    200: { description: "Array of live listings, with category/images/pricingTiers included" },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/listings/{id}",
+  tags: ["Listings"],
+  summary: "Get a single listing by ID",
+  request: {
+    params: z.object({ id: z.uuid() }),
+  },
+  responses: {
+    200: { description: "Listing detail" },
+    404: { description: "Listing not found" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/bookings",
+  tags: ["Bookings"],
+  summary: "Create a booking (concurrency-safe: checks live availability inside a Serializable transaction)",
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: { "application/json": { schema: createBookingSchema } },
+    },
+  },
+  responses: {
+    201: { description: "Booking created with status PAYMENT_PENDING" },
+    400: { description: "Listing not found or not currently bookable" },
+    404: { description: "Listing not found" },
+    409: {
+      description:
+        "Either insufficient stock for the requested dates, or a conflicting concurrent booking — client should retry on conflict",
+    },
   },
 });
 
