@@ -4,6 +4,8 @@ import {
 } from "@asteasolutions/zod-to-openapi";
 import { registerSchema, loginSchema } from "../types/auth";
 import { z } from "zod";
+import { createOwnerProfileSchema } from "../types/owner";
+import { createListingSchema } from "../types/listing";
 
 const registry = new OpenAPIRegistry();
 
@@ -116,6 +118,49 @@ registry.registerPath({
   summary: "Clear the refresh token cookie",
   responses: {
     204: { description: "Logged out" },
+  },
+ 
+});
+
+registry.registerComponent("securitySchemes", "bearerAuth", {
+  type: "http",
+  scheme: "bearer",
+  bearerFormat: "JWT",
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/owners/me",
+  tags: ["Owners"],
+  summary: "Create an owner profile",
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: { "application/json": { schema: createOwnerProfileSchema } },
+    },
+  },
+  responses: {
+    201: { description: "Owner profile created" },
+    401: { description: "Missing or invalid access token" },
+    409: { description: "Owner profile already exists" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/listings",
+  tags: ["Listings"],
+  summary: "Create a new listing (requires an owner profile)",
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: { "application/json": { schema: createListingSchema } },
+    },
+  },
+  responses: {
+    201: { description: "Listing created (LIVE if owner is verified, PENDING_REVIEW otherwise)" },
+    400: { description: "Invalid category" },
+    403: { description: "User has no owner profile" },
   },
 });
 
