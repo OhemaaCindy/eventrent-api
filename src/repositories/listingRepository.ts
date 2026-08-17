@@ -11,6 +11,7 @@ export const listingRepository = {
     input: {
       categoryId: string;
       title: string;
+      location: string;
       quantityTotal: number;
       pricePerDay: number;
       depositAmount: number;

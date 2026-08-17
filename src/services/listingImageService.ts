@@ -6,14 +6,20 @@ import { AppError } from "../middleware/errorHandler";
 
 export const listingImageService = {
   async addImage(userId: string, listingId: string, fileBuffer: Buffer) {
-    const listing = await prisma.listing.findUnique({ where: { id: listingId } });
+    const listing = await prisma.listing.findUnique({
+      where: { id: listingId },
+    });
     if (!listing) {
       throw new AppError(404, "LISTING_NOT_FOUND", "Listing not found");
     }
 
     const owner = await ownerRepository.findByUserId(userId);
     if (!owner || owner.id !== listing.ownerId) {
-      throw new AppError(403, "NOT_LISTING_OWNER", "You do not own this listing");
+      throw new AppError(
+        403,
+        "NOT_LISTING_OWNER",
+        "You do not own this listing",
+      );
     }
 
     let url: string;
@@ -24,7 +30,8 @@ export const listingImageService = {
       throw new AppError(502, "IMAGE_UPLOAD_FAILED", "Failed to upload image");
     }
 
-    const existingCount = await listingImageRepository.countByListingId(listingId);
+    const existingCount =
+      await listingImageRepository.countByListingId(listingId);
 
     return listingImageRepository.create(listingId, url, existingCount);
   },

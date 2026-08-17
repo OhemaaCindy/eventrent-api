@@ -1,8 +1,12 @@
 import { prisma } from "../lib/prisma";
 import { bookingRepository } from "../repositories/bookingRepository";
+
 import { AppError } from "../middleware/errorHandler";
 import { ListingStatus, Prisma } from "../generated/prisma/client";
 import type { CreateBookingInput } from "../types/booking";
+import { initializeTransaction } from "../lib/paystack";
+import { env } from "../lib/env";
+import { paymentRepository } from "../repositories/paymentRepository";
 
 function daysBetweenInclusive(start: Date, end: Date): number {
   const msPerDay = 1000 * 60 * 60 * 24;
@@ -18,12 +22,13 @@ function isSerializationConflict(err: unknown): boolean {
 }
 
 export const bookingService = {
-  async createBooking(renterId: string, input: CreateBookingInput) {
+  async createBooking(renterId: string, input: CreateBookingInput, renterEmail: string) {
     const startDate = new Date(input.startDate);
     const endDate = new Date(input.endDate);
 
+    let booking;
     try {
-      return await prisma.$transaction(
+      booking = await prisma.$transaction(
         async (tx) => {
           const listing = await bookingRepository.findListingById(tx, input.listingId);
 
@@ -74,5 +79,20 @@ export const bookingService = {
       }
       throw err;
     }
+
+    // Booking row exists, stock is reserved. Payment initialization happens
+    // OUTSIDE the transaction — never hold a DB transaction open across a
+    // network call to an external service.
+    const reference = `booking_${booking.id}`;
+    const paystackResponse = await initializeTransaction(
+      renterEmail,
+      Number(booking.totalPrice),
+      reference,
+      `${env.FRONTEND_URL}/bookings/${booking.id}/payment-callback`
+    );
+
+    await paymentRepository.create(booking.id, reference, booking.totalPrice);
+
+    return { booking, paymentUrl: paystackResponse.authorization_url };
   },
 };

@@ -1,15 +1,13 @@
+import crypto from "crypto";
 import { authRepository } from "../repositories/authRepository";
+import { magicLinkRepository } from "../repositories/magicLinkRepository";
 import { hashPassword, verifyPassword } from "../lib/password";
-import { signAccessToken, signRefreshToken } from "../lib/token";
+import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../lib/token";
+import { emailSender } from "../lib/email";
 import { AppError } from "../middleware/errorHandler";
 import { AuthProvider } from "../generated/prisma/client";
-import type { RegisterInput, LoginInput } from "../types/auth";
-import { verifyRefreshToken } from "../lib/token";
-import crypto from "crypto";
-import { magicLinkRepository } from "../repositories/magicLinkRepository";
-import { emailSender } from "../lib/email";
 import { exchangeCodeForUserInfo } from "../lib/googleOAuth";
-
+import type { RegisterInput, LoginInput } from "../types/auth";
 
 export const authService = {
   async register(input: RegisterInput) {
@@ -25,7 +23,7 @@ export const authService = {
       passwordHash
     );
 
-    return issueTokens(user.id);
+    return issueTokens(user.id, user.email);
   },
 
   async login(input: LoginInput) {
@@ -43,7 +41,7 @@ export const authService = {
     const isValid = await verifyPassword(input.password, passwordIdentity.passwordHash);
     if (!isValid) throw genericError();
 
-    return issueTokens(user.id);
+    return issueTokens(user.id, user.email);
   },
 
   async refresh(refreshToken: string) {
@@ -54,21 +52,18 @@ export const authService = {
       throw new AppError(401, "INVALID_REFRESH_TOKEN", "Invalid or expired refresh token");
     }
 
-    return issueTokens(payload.userId);
+    return issueTokens(payload.userId, payload.email);
   },
 
   async requestMagicLink(email: string) {
     const rawToken = crypto.randomBytes(32).toString("hex");
     const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 min
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
     await magicLinkRepository.create(email, tokenHash, expiresAt);
 
     const link = `http://localhost:5173/auth/magic-link/verify?token=${rawToken}`;
     await emailSender.sendMagicLink(email, link);
-
-    // Always return success, whether or not the email exists — same enumeration
-    // protection principle as login. We don't want to confirm/deny account existence.
   },
 
   async verifyMagicLink(rawToken: string) {
@@ -87,23 +82,23 @@ export const authService = {
       user = await authRepository.createUserWithMagicLink(record.email);
     }
 
-    return issueTokens(user.id);
+    return issueTokens(user.id, user.email);
   },
 
   async loginWithGoogle(code: string) {
-  const googleUser = await exchangeCodeForUserInfo(code);
-  const user = await authRepository.findOrCreateGoogleUser(
-    googleUser.sub,
-    googleUser.email,
-    googleUser.name
-  );
-  return issueTokens(user.id);
-},
+    const googleUser = await exchangeCodeForUserInfo(code);
+    const user = await authRepository.findOrCreateGoogleUser(
+      googleUser.sub,
+      googleUser.email,
+      googleUser.name
+    );
+    return issueTokens(user.id, user.email);
+  },
 };
 
-function issueTokens(userId: string) {
+function issueTokens(userId: string, email: string) {
   return {
-    accessToken: signAccessToken({ userId }),
-    refreshToken: signRefreshToken({ userId }),
+    accessToken: signAccessToken({ userId, email }),
+    refreshToken: signRefreshToken({ userId, email }),
   };
 }

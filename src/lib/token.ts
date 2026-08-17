@@ -3,6 +3,7 @@ import { env } from "./env";
 
 export interface TokenPayload {
   userId: string;
+  email: string;
 }
 
 export function signAccessToken(payload: TokenPayload): string {

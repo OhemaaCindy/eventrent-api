@@ -11,13 +11,15 @@ import { ownerRoutes } from "./routes/ownerRoutes";
 import { listingRoutes } from "./routes/listingRoutes";
 import { categoryRoutes } from "./routes/categoryRoutes";
 import { bookingRoutes } from "./routes/bookingRoutes";
+import { webhookRoutes } from "./routes/webhookRoutes";
 
 export const app = express();
 
 app.use(helmet());
 
-app.use(cors({origin: env.CORS_ORIGIN,credentials: true,}));
+app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
 app.use(cookieParser());
+app.use("/webhooks", webhookRoutes);
 app.use(express.json());
 
 app.get("/health", (_req, res) => {
@@ -36,7 +38,7 @@ app.use("/categories", categoryRoutes);
 app.use("/bookings", bookingRoutes);
 
 // OpenAPI documentation
-const openApiDocument = generateOpenApiDocument(); 
+const openApiDocument = generateOpenApiDocument();
 app.get("/openapi.json", (_req, res) => res.json(openApiDocument));
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
 

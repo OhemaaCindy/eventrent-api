@@ -42,7 +42,10 @@ registry.registerPath({
     },
   },
   responses: {
-    200: { description: "If the email exists, a magic link has been sent (generic response either way)" },
+    200: {
+      description:
+        "If the email exists, a magic link has been sent (generic response either way)",
+    },
   },
 });
 
@@ -74,13 +77,18 @@ registry.registerPath({
   method: "get",
   path: "/auth/google/callback",
   tags: ["Auth"],
-  summary: "Google OAuth callback — exchanges code for tokens, logs in or creates the user",
+  summary:
+    "Google OAuth callback — exchanges code for tokens, logs in or creates the user",
   request: {
     query: z.object({ code: z.string(), state: z.string() }),
   },
   responses: {
-    302: { description: "Redirects to frontend after setting refresh token cookie" },
-    401: { description: "OAuth state mismatch (possible CSRF) or invalid code" },
+    302: {
+      description: "Redirects to frontend after setting refresh token cookie",
+    },
+    401: {
+      description: "OAuth state mismatch (possible CSRF) or invalid code",
+    },
   },
 });
 
@@ -120,7 +128,6 @@ registry.registerPath({
   responses: {
     204: { description: "Logged out" },
   },
- 
 });
 
 registry.registerComponent("securitySchemes", "bearerAuth", {
@@ -159,7 +166,10 @@ registry.registerPath({
     },
   },
   responses: {
-    201: { description: "Listing created (LIVE if owner is verified, PENDING_REVIEW otherwise)" },
+    201: {
+      description:
+        "Listing created (LIVE if owner is verified, PENDING_REVIEW otherwise)",
+    },
     400: { description: "Invalid category" },
     403: { description: "User has no owner profile" },
   },
@@ -181,7 +191,10 @@ registry.registerPath({
   tags: ["Listings"],
   summary: "Browse all live listings",
   responses: {
-    200: { description: "Array of live listings, with category/images/pricingTiers included" },
+    200: {
+      description:
+        "Array of live listings, with category/images/pricingTiers included",
+    },
   },
 });
 
@@ -203,7 +216,8 @@ registry.registerPath({
   method: "post",
   path: "/bookings",
   tags: ["Bookings"],
-  summary: "Create a booking (concurrency-safe: checks live availability inside a Serializable transaction)",
+  summary:
+    "Create a booking (concurrency-safe: checks live availability inside a Serializable transaction)",
   security: [{ bearerAuth: [] }],
   request: {
     body: {
@@ -263,6 +277,8 @@ export function generateOpenApiDocument() {
       version: "1.0.0",
       description: "Marketplace API for renting party/event equipment",
     },
-    servers: [{ url: "http://localhost:4000", description: "Local development" }],
+    servers: [
+      { url: "http://localhost:4000", description: "Local development" },
+    ],
   });
 }

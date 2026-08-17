@@ -128,6 +128,7 @@ model Listing {
   ownerId         String
   categoryId      String
   title           String
+  location        String
   quantityTotal   Int
   pricePerDay     Decimal         @db.Decimal(10, 2)
   depositAmount   Decimal         @db.Decimal(10, 2)
@@ -179,24 +180,26 @@ model Booking {
 }
 
 model Payment {
-  id                    String        @id @default(uuid())
-  bookingId             String        @unique
-  stripePaymentIntentId String
-  amount                Decimal       @db.Decimal(10, 2)
-  status                PaymentStatus @default(PENDING)
+  id                String        @id @default(uuid())
+  bookingId         String        @unique
+  providerReference String
+  amount            Decimal       @db.Decimal(10, 2)
+  status            PaymentStatus @default(PENDING)
 
   booking Booking @relation(fields: [bookingId], references: [id])
 }
 
 model DepositHold {
-  id            String            @id @default(uuid())
-  bookingId     String            @unique
-  amount        Decimal           @db.Decimal(10, 2)
-  status        DepositHoldStatus @default(HELD)
-  autoReleaseAt DateTime
+  id                String            @id @default(uuid())
+  bookingId         String            @unique
+  amount            Decimal           @db.Decimal(10, 2)
+  status            DepositHoldStatus @default(HELD)
+  autoReleaseAt     DateTime
+  providerReference String?
+  refundReference   String?
 
-  booking  Booking  @relation(fields: [bookingId], references: [id])
-  dispute  Dispute?
+  booking Booking  @relation(fields: [bookingId], references: [id])
+  dispute Dispute?
 }
 
 model Dispute {

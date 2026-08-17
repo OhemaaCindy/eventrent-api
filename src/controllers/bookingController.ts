@@ -8,9 +8,10 @@ export const bookingController = {
     try {
       const input = createBookingSchema.parse(req.body);
       const renterId = req.userId as string;
+      const renterEmail = req.userEmail as string;
 
-      const booking = await bookingService.createBooking(renterId, input);
-      res.status(201).json(booking);
+      const result = await bookingService.createBooking(renterId, input, renterEmail);
+      res.status(201).json(result);
     } catch (err) {
       next(err);
     }

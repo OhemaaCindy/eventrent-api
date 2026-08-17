@@ -4,6 +4,7 @@ import { AppError } from "./errorHandler";
 
 export interface AuthenticatedRequest extends Request {
   userId?: string;
+  userEmail?: string;
 }
 
 export function authMiddleware(
@@ -22,6 +23,7 @@ export function authMiddleware(
   try {
     const payload = verifyAccessToken(token);
     req.userId = payload.userId;
+    req.userEmail = payload.email;
     next();
   } catch {
     next(new AppError(401, "UNAUTHORIZED", "Invalid or expired access token"));
