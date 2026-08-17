@@ -221,6 +221,38 @@ registry.registerPath({
   },
 });
 
+registry.registerPath({
+  method: "post",
+  path: "/listings/{id}/images",
+  tags: ["Listings"],
+  summary: "Upload an image for a listing (owner only)",
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.uuid() }),
+    body: {
+      content: {
+        "multipart/form-data": {
+          schema: {
+            type: "object",
+            properties: {
+              image: {
+                type: "string",
+                format: "binary",
+              },
+            },
+            required: ["image"],
+          },
+        },
+      },
+    },
+  },
+  responses: {
+    201: { description: "Image uploaded and attached to listing" },
+    400: { description: "No file provided, or invalid file type/size" },
+    403: { description: "You do not own this listing" },
+    404: { description: "Listing not found" },
+  },
+});
 export function generateOpenApiDocument() {
   const generator = new OpenApiGeneratorV3(registry.definitions);
 
