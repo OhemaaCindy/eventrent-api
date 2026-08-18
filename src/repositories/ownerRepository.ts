@@ -11,4 +11,16 @@ export const ownerRepository = {
       data: { userId, type, businessName, verificationStatus },
     });
   },
+
+  findById(id: string) {
+  return prisma.ownerProfile.findUnique({ where: { id } });
+},
+
+updateVerificationStatus(id: string, status: VerificationStatus) {
+  return prisma.ownerProfile.update({
+    where: { id },
+    data: { verificationStatus: status },
+  });
+},
 };
+

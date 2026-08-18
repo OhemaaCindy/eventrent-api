@@ -267,6 +267,37 @@ registry.registerPath({
     404: { description: "Listing not found" },
   },
 });
+
+registry.registerPath({
+  method: "post",
+  path: "/webhooks/paystack",
+  tags: ["Webhooks"],
+  summary: "Paystack webhook receiver (signature-verified, not called directly by clients)",
+  responses: {
+    200: { description: "Event received and processed (or safely ignored)" },
+    400: { description: "Missing signature" },
+    401: { description: "Invalid signature" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/admin/owners/{id}/verify",
+  tags: ["Admin"],
+  summary: "Approve a business owner's verification (admin only) — also publishes their pending listings",
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.uuid() }),
+  },
+  responses: {
+    200: { description: "Owner approved, pending listings published" },
+    400: { description: "Owner is not a business (individuals don't need approval)" },
+    403: { description: "Requires admin privileges" },
+    404: { description: "Owner profile not found" },
+    409: { description: "Owner already approved" },
+  },
+});
+
 export function generateOpenApiDocument() {
   const generator = new OpenApiGeneratorV3(registry.definitions);
 

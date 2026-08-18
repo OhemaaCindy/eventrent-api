@@ -12,6 +12,7 @@ import { listingRoutes } from "./routes/listingRoutes";
 import { categoryRoutes } from "./routes/categoryRoutes";
 import { bookingRoutes } from "./routes/bookingRoutes";
 import { webhookRoutes } from "./routes/webhookRoutes";
+import { adminRoutes } from "./routes/adminRoutes";
 
 export const app = express();
 
@@ -36,6 +37,7 @@ app.use("/owners", ownerRoutes);
 app.use("/listings", listingRoutes);
 app.use("/categories", categoryRoutes);
 app.use("/bookings", bookingRoutes);
+app.use("/admin", adminRoutes);
 
 // OpenAPI documentation
 const openApiDocument = generateOpenApiDocument();
