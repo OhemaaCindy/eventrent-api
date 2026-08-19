@@ -1,6 +1,6 @@
 import { Response, NextFunction, Request} from "express";
 import { listingService } from "../services/listingService";
-import { createListingSchema } from "../types/listing";
+import { createListingSchema, updateListingSchema, browseListingsSchema } from "../types/listing";
 import type { AuthenticatedRequest } from "../middleware/authMiddleware";
 import { listingRepository } from "../repositories/listingRepository";
 import { AppError } from "../middleware/errorHandler";
@@ -17,9 +17,20 @@ export const listingController = {
       next(err);
     }
   },
-async list(_req: Request, res: Response, next: NextFunction) {
+async list(req: Request, res: Response, next: NextFunction) {
   try {
-    const listings = await listingRepository.findMany();
+    const filters = browseListingsSchema.parse(req.query);
+    const listings = await listingService.browseListings(filters);
+    res.status(200).json(listings);
+  } catch (err) {
+    next(err);
+  }
+},
+
+async listMine(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const userId = req.userId as string;
+    const listings = await listingService.getMyListings(userId);
     res.status(200).json(listings);
   } catch (err) {
     next(err);
@@ -37,6 +48,30 @@ async getById(req: Request, res: Response, next: NextFunction) {
     next(err);
   }
 },
-  
+
+async update(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const input = updateListingSchema.parse(req.body);
+    const userId = req.userId as string;
+    const listingId = req.params.id as string;
+
+    const listing = await listingService.updateListing(userId, listingId, input);
+    res.status(200).json(listing);
+  } catch (err) {
+    next(err);
+  }
+},
+
+async remove(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const userId = req.userId as string;
+    const listingId = req.params.id as string;
+
+    await listingService.deleteListing(userId, listingId);
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+},
 };
 

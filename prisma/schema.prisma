@@ -59,16 +59,26 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum DisputeStatus {
+  PENDING_RESOLUTION
+  RESOLVED
+}
+
 enum DepositHoldStatus {
   HELD
   RELEASED
   DISPUTED
-  REFUNDED
+  RETAINED
 }
 
-enum DisputeStatus {
-  PENDING_RESOLUTION
-  RESOLVED
+enum DisputeResolution {
+  REFUND_RENTER
+  RETAIN_DEPOSIT
+}
+
+enum PayoutStatus {
+  PENDING
+  PAID
 }
 
 model User {
@@ -81,7 +91,9 @@ model User {
   authIdentities AuthIdentity[]
   ownerProfile   OwnerProfile?
   bookings       Booking[]
-  disputesOpened Dispute[]
+  disputesOpened   Dispute[] @relation("DisputeOpenedBy")
+  disputesResolved Dispute[] @relation("DisputeResolvedBy")
+  emailVerificationTokens EmailVerificationToken[]
 }
 
 
@@ -106,6 +118,17 @@ model MagicLinkToken {
   createdAt DateTime  @default(now())
 }
 
+model EmailVerificationToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
 model OwnerProfile {
   id                 String              @id @default(uuid())
   userId             String              @unique
@@ -115,6 +138,7 @@ model OwnerProfile {
 
   user     User      @relation(fields: [userId], references: [id])
   listings Listing[]
+  payouts  Payout[]
 }
 
 model Category {
@@ -177,6 +201,7 @@ model Booking {
   
   payment     Payment?
   depositHold DepositHold?
+  payout      Payout?
   renter  User    @relation(fields: [renterId], references: [id])
   listing Listing @relation(fields: [listingId], references: [id])
 }
@@ -207,13 +232,32 @@ model DepositHold {
 }
 
 model Dispute {
-  id            String        @id @default(uuid())
-  depositHoldId String        @unique
-  openedById    String
-  reason        String
-  status        DisputeStatus @default(PENDING_RESOLUTION)
+  id             String             @id @default(uuid())
+  depositHoldId  String             @unique
+  openedById     String
+  reason         String
+  evidenceUrls   String[]           @default([])
+  status         DisputeStatus      @default(PENDING_RESOLUTION)
+  resolution     DisputeResolution?
+  resolvedById   String?
+  resolvedAt     DateTime?
 
   depositHold DepositHold @relation(fields: [depositHoldId], references: [id])
-  openedBy    User        @relation(fields: [openedById], references: [id])
+  openedBy    User        @relation("DisputeOpenedBy", fields: [openedById], references: [id])
+  resolvedBy  User?       @relation("DisputeResolvedBy", fields: [resolvedById], references: [id])
+}
+
+model Payout {
+  id               String       @id @default(uuid())
+  bookingId        String       @unique
+  ownerId          String
+  amount           Decimal      @db.Decimal(10, 2)
+  commissionAmount Decimal      @db.Decimal(10, 2)
+  status           PayoutStatus @default(PENDING)
+  paidAt           DateTime?
+  createdAt        DateTime     @default(now())
+
+  booking Booking      @relation(fields: [bookingId], references: [id])
+  owner   OwnerProfile @relation(fields: [ownerId], references: [id])
 }
 

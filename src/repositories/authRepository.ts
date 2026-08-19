@@ -9,6 +9,20 @@ export const authRepository = {
     });
   },
 
+  findUserById(userId: string) {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      include: { authIdentities: true },
+    });
+  },
+
+  markEmailVerified(userId: string) {
+    return prisma.authIdentity.updateMany({
+      where: { userId, provider: AuthProvider.PASSWORD },
+      data: { emailVerified: true },
+    });
+  },
+
   findAuthIdentity(userId: string, provider: AuthProvider) {
     return prisma.authIdentity.findFirst({
       where: { userId, provider },

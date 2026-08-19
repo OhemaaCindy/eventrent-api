@@ -1,12 +1,12 @@
 import { prisma } from "../lib/prisma";
 import { bookingRepository } from "../repositories/bookingRepository";
-
+import { paymentRepository } from "../repositories/paymentRepository";
 import { AppError } from "../middleware/errorHandler";
 import { ListingStatus, Prisma } from "../generated/prisma/client";
 import type { CreateBookingInput } from "../types/booking";
 import { initializeTransaction } from "../lib/paystack";
 import { env } from "../lib/env";
-import { paymentRepository } from "../repositories/paymentRepository";
+import { depositHoldRepository } from "../repositories/depositHoldRepository";
 
 function daysBetweenInclusive(start: Date, end: Date): number {
   const msPerDay = 1000 * 60 * 60 * 24;
@@ -26,9 +26,9 @@ export const bookingService = {
     const startDate = new Date(input.startDate);
     const endDate = new Date(input.endDate);
 
-    let booking;
+    let txResult: { booking: { id: string; totalPrice: unknown }; depositAmount: number };
     try {
-      booking = await prisma.$transaction(
+      txResult = await prisma.$transaction(
         async (tx) => {
           const listing = await bookingRepository.findListingById(tx, input.listingId);
 
@@ -58,7 +58,7 @@ export const bookingService = {
           const days = daysBetweenInclusive(startDate, endDate);
           const totalPrice = Number(listing.pricePerDay) * input.quantity * days;
 
-          return bookingRepository.create(tx, {
+          const newBooking = await bookingRepository.create(tx, {
             renterId,
             listingId: input.listingId,
             quantity: input.quantity,
@@ -66,6 +66,8 @@ export const bookingService = {
             endDate,
             totalPrice,
           });
+
+          return { booking: newBooking, depositAmount: Number(listing.depositAmount) };
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
       );
@@ -80,18 +82,22 @@ export const bookingService = {
       throw err;
     }
 
-    // Booking row exists, stock is reserved. Payment initialization happens
-    // OUTSIDE the transaction — never hold a DB transaction open across a
-    // network call to an external service.
+    const { booking, depositAmount } = txResult;
+
+    // Payment initialization happens OUTSIDE the transaction — never hold a
+    // DB transaction open across a network call to an external service.
     const reference = `booking_${booking.id}`;
+    const totalCharge = Number(booking.totalPrice) + depositAmount;
+
     const paystackResponse = await initializeTransaction(
       renterEmail,
-      Number(booking.totalPrice),
+      totalCharge,
       reference,
       `${env.FRONTEND_URL}/bookings/${booking.id}/payment-callback`
     );
 
     await paymentRepository.create(booking.id, reference, booking.totalPrice);
+    await depositHoldRepository.create(booking.id, reference, depositAmount);
 
     return { booking, paymentUrl: paystackResponse.authorization_url };
   },

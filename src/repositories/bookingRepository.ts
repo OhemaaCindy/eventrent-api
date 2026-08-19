@@ -1,5 +1,6 @@
 import { Prisma } from "../generated/prisma/client";
 import { BookingStatus } from "../generated/prisma/client";
+import { prisma } from "../lib/prisma";
 
 type TxClient = Prisma.TransactionClient;
 
@@ -41,5 +42,21 @@ export const bookingRepository = {
     return tx.booking.create({
       data: { ...data, status: BookingStatus.PAYMENT_PENDING },
     });
+  },
+
+  findByRenterId(renterId: string) {
+    return prisma.booking.findMany({
+      where: { renterId },
+      include: {
+        listing: { include: { images: true } },
+        payment: true,
+        depositHold: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  },
+
+  countByListingId(listingId: string) {
+    return prisma.booking.count({ where: { listingId } });
   },
 };

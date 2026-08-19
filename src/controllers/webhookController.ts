@@ -6,6 +6,15 @@ import { paymentRepository } from "../repositories/paymentRepository";
 import { prisma } from "../lib/prisma";
 import { BookingStatus, PaymentStatus } from "../generated/prisma/client";
 
+function splitCommission(totalPrice: unknown) {
+  const totalPriceCents = Math.round(Number(totalPrice) * 100);
+  const commissionCents = Math.round(totalPriceCents * (env.PLATFORM_COMMISSION_PERCENT / 100));
+  return {
+    payoutAmount: (totalPriceCents - commissionCents) / 100,
+    commissionAmount: commissionCents / 100,
+  };
+}
+
 export const webhookController = {
   async handlePaystackWebhook(req: Request, res: Response) {
     const signature = req.headers["x-paystack-signature"];
@@ -57,6 +66,16 @@ export const webhookController = {
       return;
     }
 
+    const booking = await prisma.booking.findUnique({
+      where: { id: payment.bookingId },
+      include: { listing: true },
+    });
+    if (!booking) {
+      return;
+    }
+
+    const { payoutAmount, commissionAmount } = splitCommission(booking.totalPrice);
+
     await prisma.$transaction([
       prisma.payment.update({
         where: { id: payment.id },
@@ -65,6 +84,14 @@ export const webhookController = {
       prisma.booking.update({
         where: { id: payment.bookingId },
         data: { status: BookingStatus.CONFIRMED },
+      }),
+      prisma.payout.create({
+        data: {
+          bookingId: booking.id,
+          ownerId: booking.listing.ownerId,
+          amount: payoutAmount,
+          commissionAmount,
+        },
       }),
     ]);
   },

@@ -5,6 +5,7 @@ import { AppError } from "../middleware/errorHandler";
 import crypto from "crypto";
 import { buildGoogleAuthUrl } from "../lib/googleOAuth";
 import { env } from "../lib/env";
+import type { AuthenticatedRequest } from "../middleware/authMiddleware";
 
 const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,
@@ -84,6 +85,30 @@ export const authController = {
 
       res.cookie("refreshToken", refreshToken, REFRESH_COOKIE_OPTIONS);
       res.status(200).json({ accessToken });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async verifyEmail(req: Request, res: Response, next: NextFunction) {
+    try {
+      const token = req.query.token;
+      if (!token || typeof token !== "string") {
+        throw new AppError(400, "VALIDATION_ERROR", "Token is required");
+      }
+
+      await authService.verifyEmail(token);
+      res.status(200).json({ message: "Email verified successfully." });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async resendVerificationEmail(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId as string;
+      await authService.resendVerificationEmail(userId);
+      res.status(200).json({ message: "Verification email resent." });
     } catch (err) {
       next(err);
     }

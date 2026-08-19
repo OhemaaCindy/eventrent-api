@@ -8,5 +8,8 @@ export const listingRoutes = Router();
 
 listingRoutes.post("/", authMiddleware, listingController.create);
 listingRoutes.get("/", listingController.list);
+listingRoutes.get("/mine", authMiddleware, listingController.listMine);
 listingRoutes.get("/:id", listingController.getById);
+listingRoutes.patch("/:id", authMiddleware, listingController.update);
+listingRoutes.delete("/:id", authMiddleware, listingController.remove);
 listingRoutes.post("/:id/images", authMiddleware, uploadImage.single("image"), listingImageController.upload);

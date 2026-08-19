@@ -1,7 +1,8 @@
 import { prisma } from "../lib/prisma";
 import { ownerRepository } from "../repositories/ownerRepository";
+import { payoutRepository } from "../repositories/payoutRepository";
 import { AppError } from "../middleware/errorHandler";
-import { VerificationStatus, ListingStatus, OwnerType } from "../generated/prisma/client";
+import { VerificationStatus, ListingStatus, OwnerType, PayoutStatus } from "../generated/prisma/client";
 
 export const adminService = {
   async approveOwner(ownerId: string) {
@@ -30,5 +31,21 @@ export const adminService = {
 
       return updatedOwner;
     });
+  },
+
+  listPayouts() {
+    return payoutRepository.findAll();
+  },
+
+  async markPayoutPaid(payoutId: string) {
+    const payout = await payoutRepository.findById(payoutId);
+    if (!payout) {
+      throw new AppError(404, "PAYOUT_NOT_FOUND", "Payout not found");
+    }
+    if (payout.status === PayoutStatus.PAID) {
+      throw new AppError(409, "ALREADY_PAID", "This payout has already been marked as paid");
+    }
+
+    return payoutRepository.markPaid(payoutId);
   },
 };

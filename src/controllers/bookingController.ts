@@ -2,6 +2,7 @@ import { Response, NextFunction } from "express";
 import { bookingService } from "../services/bookingService";
 import { createBookingSchema } from "../types/booking";
 import type { AuthenticatedRequest } from "../middleware/authMiddleware";
+import { bookingRepository } from "../repositories/bookingRepository";
 
 export const bookingController = {
   async create(req: AuthenticatedRequest, res: Response, next: NextFunction) {
@@ -12,6 +13,16 @@ export const bookingController = {
 
       const result = await bookingService.createBooking(renterId, input, renterEmail);
       res.status(201).json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async list(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const renterId = req.userId as string;
+      const bookings = await bookingRepository.findByRenterId(renterId);
+      res.status(200).json(bookings);
     } catch (err) {
       next(err);
     }

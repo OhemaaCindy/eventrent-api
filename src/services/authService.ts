@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { authRepository } from "../repositories/authRepository";
 import { magicLinkRepository } from "../repositories/magicLinkRepository";
+import { emailVerificationRepository } from "../repositories/emailVerificationRepository";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../lib/token";
 import { emailSender } from "../lib/email";
@@ -22,6 +23,8 @@ export const authService = {
       input.name,
       passwordHash
     );
+
+    await issueEmailVerification(user.id, user.email);
 
     return issueTokens(user.id, user.email);
   },
@@ -94,6 +97,37 @@ export const authService = {
     );
     return issueTokens(user.id, user.email);
   },
+
+  async verifyEmail(rawToken: string) {
+    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+    const record = await emailVerificationRepository.findValidByHash(tokenHash);
+
+    if (!record) {
+      throw new AppError(401, "INVALID_VERIFICATION_TOKEN", "This link is invalid or has expired");
+    }
+
+    await emailVerificationRepository.markUsed(record.id);
+    await authRepository.markEmailVerified(record.userId);
+  },
+
+  async resendVerificationEmail(userId: string) {
+    const user = await authRepository.findUserById(userId);
+    if (!user) {
+      throw new AppError(404, "USER_NOT_FOUND", "User not found");
+    }
+
+    const passwordIdentity = user.authIdentities.find(
+      (identity) => identity.provider === AuthProvider.PASSWORD
+    );
+    if (!passwordIdentity) {
+      throw new AppError(400, "NO_PASSWORD_IDENTITY", "This account has no password login to verify");
+    }
+    if (passwordIdentity.emailVerified) {
+      throw new AppError(409, "ALREADY_VERIFIED", "This email is already verified");
+    }
+
+    await issueEmailVerification(user.id, user.email);
+  },
 };
 
 function issueTokens(userId: string, email: string) {
@@ -101,4 +135,15 @@ function issueTokens(userId: string, email: string) {
     accessToken: signAccessToken({ userId, email }),
     refreshToken: signRefreshToken({ userId, email }),
   };
+}
+
+async function issueEmailVerification(userId: string, email: string) {
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h — not urgent like a login link
+
+  await emailVerificationRepository.create(userId, tokenHash, expiresAt);
+
+  const link = `http://localhost:5173/auth/verify-email?token=${rawToken}`;
+  await emailSender.sendVerificationEmail(email, link);
 }

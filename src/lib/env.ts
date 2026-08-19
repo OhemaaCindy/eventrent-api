@@ -22,6 +22,7 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string().min(1, "CLOUDINARY_API_KEY is required"),
   CLOUDINARY_API_SECRET: z.string().min(1, "CLOUDINARY_API_SECRET is required"),
   PAYSTACK_SECRET_KEY: z.string().min(1, "PAYSTACK_SECRET_KEY is required"),
+  PLATFORM_COMMISSION_PERCENT: z.coerce.number().min(0).max(100).default(10),
 });
 
 const parsed = envSchema.safeParse(process.env);

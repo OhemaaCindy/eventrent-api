@@ -11,3 +11,21 @@ adminRoutes.post(
   adminMiddleware,
   adminController.approveOwner
 );
+adminRoutes.post(
+  "/disputes/:id/resolve",
+  authMiddleware,
+  adminMiddleware,
+  adminController.resolveDispute
+);
+adminRoutes.get(
+  "/payouts",
+  authMiddleware,
+  adminMiddleware,
+  adminController.listPayouts
+);
+adminRoutes.post(
+  "/payouts/:id/mark-paid",
+  authMiddleware,
+  adminMiddleware,
+  adminController.markPayoutPaid
+);
