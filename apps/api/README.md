@@ -8,8 +8,9 @@ Built as a portfolio project to practice production-standard backend engineering
 - **Backend:** Node.js, Express, TypeScript
 - **Database:** PostgreSQL
 - **ORM:** Prisma
-- **Payments:** Stripe Connect
+- **Payments:** Paystack (see ADR-0015 for why — Stripe Connect was the original plan)
 - **Auth:** Google OAuth2, magic link, password (unified identity model)
+- **Real-time:** socket.io, for in-app messaging
 
 ## Documentation
 Full engineering decision trail lives in [`/docs`](./docs):
@@ -18,7 +19,17 @@ Full engineering decision trail lives in [`/docs`](./docs):
 - [`docs/adr/`](./docs/adr) — Architecture Decision Records for every major technical decision, with context and tradeoffs
 
 ## Getting started
-_(To be filled in once the project is scaffolded — install steps, env vars, local run instructions.)_
+
+1. Start Postgres: `docker compose up -d` (from this directory)
+2. Copy `.env` with the required variables — see `lib/env.ts` for the full validated list (`DATABASE_URL`, JWT secrets, Google OAuth credentials, Cloudinary credentials, `PAYSTACK_SECRET_KEY`)
+3. Install and run, from the repo root:
+   ```bash
+   pnpm install
+   pnpm --filter @eventrent/api prisma:generate
+   pnpm --filter @eventrent/api prisma:migrate
+   pnpm dev:api
+   ```
+   The API starts on `http://localhost:4000`; Swagger docs are served at `/docs`.
 
 ## Status
-🚧 In development — schema and migrations complete, building core services.
+Core marketplace flows (auth, listings, bookings with concurrency-safe booking, deposits/disputes, payments) plus the full v2 set (reviews, messaging, bundled/recurring orders, cancellation policies, event grouping) are built and covered in `docs/architecture.md`. The frontend (`apps/web`) is just getting started.
