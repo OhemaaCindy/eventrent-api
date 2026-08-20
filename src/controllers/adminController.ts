@@ -14,6 +14,25 @@ export const adminController = {
       next(err);
     }
   },
+  async rejectOwner(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const ownerId = req.params.id as string;
+      const owner = await adminService.rejectOwner(ownerId);
+      res.status(200).json(owner);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async listPendingVerifications(_req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const owners = await adminService.listPendingVerifications();
+      res.status(200).json(owners);
+    } catch (err) {
+      next(err);
+    }
+  },
+
   async resolveDispute(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
     const disputeId = req.params.id as string;

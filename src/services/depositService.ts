@@ -134,6 +134,17 @@ export const depositService = {
         DepositHoldStatus.RELEASED,
         refund.transaction.reference
       );
+    } else if (resolution === DisputeResolution.SPLIT) {
+      if (!dispute.depositHold.providerReference) {
+        throw new AppError(500, "MISSING_REFERENCE", "Deposit has no payment reference to refund");
+      }
+      const halfAmount = Number(dispute.depositHold.amount) / 2;
+      const refund = await refundTransaction(dispute.depositHold.providerReference, halfAmount);
+      await depositHoldRepository.updateStatus(
+        dispute.depositHoldId,
+        DepositHoldStatus.SPLIT,
+        refund.transaction.reference
+      );
     } else {
       await depositHoldRepository.updateStatus(dispute.depositHoldId, DepositHoldStatus.RETAINED);
     }

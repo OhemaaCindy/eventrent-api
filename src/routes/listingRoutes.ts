@@ -13,5 +13,6 @@ listingRoutes.get("/mine", authMiddleware, listingController.listMine);
 listingRoutes.get("/:id", listingController.getById);
 listingRoutes.patch("/:id", authMiddleware, listingController.update);
 listingRoutes.delete("/:id", authMiddleware, listingController.remove);
+listingRoutes.post("/:id/publish", authMiddleware, listingController.publish);
 listingRoutes.post("/:id/images", authMiddleware, uploadImage.single("image"), listingImageController.upload);
 listingRoutes.get("/:id/reviews", reviewController.listForListing);

@@ -15,4 +15,16 @@ export const ownerController = {
       next(err);
     }
   },
+
+  async uploadVerificationDocuments(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId as string;
+      const files = (req.files as Express.Multer.File[] | undefined) ?? [];
+
+      const owner = await ownerService.addVerificationDocuments(userId, files);
+      res.status(200).json(owner);
+    } catch (err) {
+      next(err);
+    }
+  },
 };

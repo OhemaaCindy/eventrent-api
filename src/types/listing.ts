@@ -12,6 +12,7 @@ export const createListingSchema = z.object({
   depositAmount: z.number().nonnegative(),
   fulfillmentType: z.enum(["PICKUP", "DELIVERY", "BOTH"]),
   cancellationPolicy: z.enum(["FLEXIBLE", "MODERATE", "STRICT"]).optional(),
+  saveAsDraft: z.boolean().optional(),
 });
 
 export type CreateListingInput = z.infer<typeof createListingSchema>;

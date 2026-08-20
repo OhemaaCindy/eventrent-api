@@ -8,7 +8,7 @@ export const openDisputeSchema = z.object({
 });
 
 export const resolveDisputeSchema = z.object({
-  resolution: z.enum(["REFUND_RENTER", "RETAIN_DEPOSIT"]),
+  resolution: z.enum(["REFUND_RENTER", "RETAIN_DEPOSIT", "SPLIT"]),
 });
 
 export type OpenDisputeInput = z.infer<typeof openDisputeSchema>;

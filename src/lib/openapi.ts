@@ -188,6 +188,37 @@ registry.registerPath({
 
 registry.registerPath({
   method: "post",
+  path: "/owners/me/documents",
+  tags: ["Owners"],
+  summary: "Upload business verification documents (license, insurance, registration, etc.)",
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        "multipart/form-data": {
+          schema: {
+            type: "object",
+            properties: {
+              documents: {
+                type: "array",
+                items: { type: "string", format: "binary" },
+              },
+            },
+            required: ["documents"],
+          },
+        },
+      },
+    },
+  },
+  responses: {
+    200: { description: "Documents uploaded and attached to the owner profile" },
+    400: { description: "No files provided, or this owner isn't a business" },
+    403: { description: "User has no owner profile" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
   path: "/listings",
   tags: ["Listings"],
   summary: "Create a new listing (requires an owner profile)",
@@ -299,6 +330,26 @@ registry.registerPath({
 
 registry.registerPath({
   method: "post",
+  path: "/listings/{id}/publish",
+  tags: ["Listings"],
+  summary: "Publish a draft listing (owner only) — subject to the same ADR-0004 verification gate as creation",
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.uuid() }),
+  },
+  responses: {
+    200: {
+      description:
+        "Listing published — LIVE if the owner is verified, PENDING_REVIEW otherwise",
+    },
+    403: { description: "You do not own this listing" },
+    404: { description: "Listing not found" },
+    409: { description: "Only a draft listing can be published" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
   path: "/bookings",
   tags: ["Bookings"],
   summary:
@@ -377,6 +428,18 @@ registry.registerPath({
 });
 
 registry.registerPath({
+  method: "get",
+  path: "/admin/owners/pending",
+  tags: ["Admin"],
+  summary: "List business owners pending verification, oldest first",
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { description: "Array of pending business owner profiles, with the applicant's user info" },
+    403: { description: "Requires admin privileges" },
+  },
+});
+
+registry.registerPath({
   method: "post",
   path: "/admin/owners/{id}/verify",
   tags: ["Admin"],
@@ -391,6 +454,24 @@ registry.registerPath({
     403: { description: "Requires admin privileges" },
     404: { description: "Owner profile not found" },
     409: { description: "Owner already approved" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/admin/owners/{id}/reject",
+  tags: ["Admin"],
+  summary: "Reject a business owner's verification (admin only)",
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.uuid() }),
+  },
+  responses: {
+    200: { description: "Owner rejected" },
+    400: { description: "Owner is not a business" },
+    403: { description: "Requires admin privileges" },
+    404: { description: "Owner profile not found" },
+    409: { description: "Owner already approved or already rejected" },
   },
 });
 
@@ -466,7 +547,7 @@ registry.registerPath({
   method: "post",
   path: "/admin/disputes/{id}/resolve",
   tags: ["Admin"],
-  summary: "Admin resolves a dispute — either refunds the renter or retains the deposit",
+  summary: "Admin resolves a dispute — refunds the renter, retains the deposit, or splits it 50/50",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({ id: z.uuid() }),

@@ -22,5 +22,20 @@ updateVerificationStatus(id: string, status: VerificationStatus) {
     data: { verificationStatus: status },
   });
 },
+
+addVerificationDocuments(id: string, urls: string[]) {
+  return prisma.ownerProfile.update({
+    where: { id },
+    data: { verificationDocumentUrls: { push: urls } },
+  });
+},
+
+findPendingBusinessOwners() {
+  return prisma.ownerProfile.findMany({
+    where: { type: OwnerType.BUSINESS, verificationStatus: VerificationStatus.PENDING },
+    include: { user: true },
+    orderBy: { createdAt: "asc" },
+  });
+},
 };
 

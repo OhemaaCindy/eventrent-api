@@ -75,11 +75,13 @@ enum DepositHoldStatus {
   RELEASED
   DISPUTED
   RETAINED
+  SPLIT
 }
 
 enum DisputeResolution {
   REFUND_RENTER
   RETAIN_DEPOSIT
+  SPLIT
 }
 
 enum PayoutStatus {
@@ -140,11 +142,13 @@ model EmailVerificationToken {
 }
 
 model OwnerProfile {
-  id                 String              @id @default(uuid())
-  userId             String              @unique
-  type               OwnerType
-  businessName       String?
-  verificationStatus VerificationStatus  @default(APPROVED)
+  id                       String              @id @default(uuid())
+  userId                   String              @unique
+  type                     OwnerType
+  businessName             String?
+  verificationStatus       VerificationStatus  @default(APPROVED)
+  verificationDocumentUrls String[]            @default([])
+  createdAt                DateTime            @default(now())
 
   user     User      @relation(fields: [userId], references: [id])
   listings Listing[]

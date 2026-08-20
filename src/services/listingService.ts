@@ -44,6 +44,14 @@ export const listingService = {
       throw new AppError(400, "INVALID_CATEGORY", "Category does not exist");
     }
 
+    const { saveAsDraft, ...listingFields } = input;
+
+    // A draft skips the ADR-0004 verification check entirely — it only
+    // applies once the owner actually publishes, via publishListing below.
+    if (saveAsDraft) {
+      return listingRepository.create(owner.id, listingFields, ListingStatus.DRAFT);
+    }
+
     // ADR-0004: a listing only goes LIVE immediately if the owner is already
     // verified (individuals are APPROVED at profile creation; businesses
     // only reach APPROVED after admin review).
@@ -52,7 +60,31 @@ export const listingService = {
         ? ListingStatus.LIVE
         : ListingStatus.PENDING_REVIEW;
 
-    return listingRepository.create(owner.id, input, status);
+    return listingRepository.create(owner.id, listingFields, status);
+  },
+
+  async publishListing(userId: string, listingId: string) {
+    const listing = await listingRepository.findById(listingId);
+    if (!listing) {
+      throw new AppError(404, "LISTING_NOT_FOUND", "Listing not found");
+    }
+
+    if (listing.owner.userId !== userId) {
+      throw new AppError(403, "NOT_LISTING_OWNER", "You do not own this listing");
+    }
+
+    if (listing.status !== ListingStatus.DRAFT) {
+      throw new AppError(409, "NOT_A_DRAFT", "Only a draft listing can be published");
+    }
+
+    // Same ADR-0004 gate as creation — publishing doesn't bypass business
+    // verification just because the listing already existed as a draft.
+    const status =
+      listing.owner.verificationStatus === VerificationStatus.APPROVED
+        ? ListingStatus.LIVE
+        : ListingStatus.PENDING_REVIEW;
+
+    return listingRepository.update(listingId, { status });
   },
 
   async getMyListings(userId: string) {

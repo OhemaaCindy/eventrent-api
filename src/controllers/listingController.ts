@@ -73,5 +73,17 @@ async remove(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     next(err);
   }
 },
+
+async publish(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const userId = req.userId as string;
+    const listingId = req.params.id as string;
+
+    const listing = await listingService.publishListing(userId, listingId);
+    res.status(200).json(listing);
+  } catch (err) {
+    next(err);
+  }
+},
 };
 

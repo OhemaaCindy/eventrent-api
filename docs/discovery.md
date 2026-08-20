@@ -20,14 +20,15 @@ A two-sided marketplace for renting party/event equipment (tables, chairs, tents
 | Business verification | Gates listing visibility — business listings stay unpublished until admin approves | See ADR-0004 |
 | Auth | Google OAuth, magic link, and password — unified identity model (one user, multiple linked auth methods) | See ADR-0007 |
 
-## Out of Scope for v1 (parking lot for v2)
-- Reviews/ratings
-- In-app messaging/chat between renter and owner
-- Cancellation policy tiers
-- Multi-item cart / bundled checkout across multiple owners
-- Renter-side return confirmation (two-sided confirmation)
-- Recurring/subscription rentals
-- **Event grouping** — bookings currently belong to individual listings, not a parent "Event" object (e.g. grouping all rentals for one wedding under a single event). Noted as a real future direction, not built in v1.
+## Out of Scope for v1 — since built in v2
+All of the following were deliberately deferred out of v1 and have since been implemented:
+- Reviews/ratings — `POST /bookings/:id/reviews`, `GET /listings/:id/reviews`
+- In-app messaging/chat between renter and owner — `POST`/`GET /bookings/:id/messages`, `GET /messages/inbox`, plus real-time delivery over WebSocket (socket.io)
+- Cancellation policy tiers — `Listing.cancellationPolicy` (FLEXIBLE/MODERATE/STRICT), `POST /bookings/:id/cancel`
+- Multi-item cart / bundled checkout across multiple owners — `POST /orders`
+- Renter-side return confirmation (two-sided confirmation) — `POST /bookings/:id/return`
+- Recurring/subscription rentals — `POST /orders/recurring` (paid upfront as one order, not true recurring billing)
+- Event grouping — bookings can be attached to a named parent `Event` (`POST /events`, `POST /events/:id/bookings/:bookingId`)
 
 ## User Journeys
 
@@ -56,4 +57,4 @@ A two-sided marketplace for renting party/event equipment (tables, chairs, tents
 2. ✅ Stack decision — see `/docs/adr`
 3. ✅ Architecture sketch — see `docs/architecture.md`
 4. ✅ Prisma schema + initial migration
-5. Build core services (auth, listings, bookings, payments)
+5. ✅ Build core services (auth, listings, bookings, payments)
