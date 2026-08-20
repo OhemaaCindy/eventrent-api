@@ -44,6 +44,12 @@ enum ListingStatus {
   PAUSED
 }
 
+enum CancellationPolicy {
+  FLEXIBLE
+  MODERATE
+  STRICT
+}
+
 enum BookingStatus {
   CONFIRMED
   COMPLETED
@@ -94,6 +100,10 @@ model User {
   disputesOpened   Dispute[] @relation("DisputeOpenedBy")
   disputesResolved Dispute[] @relation("DisputeResolvedBy")
   emailVerificationTokens EmailVerificationToken[]
+  messages Message[]
+  reviews  Review[]
+  orders   Order[]
+  events   Event[]
 }
 
 
@@ -159,12 +169,14 @@ model Listing {
   pricePerDay     Decimal         @db.Decimal(10, 2)
   depositAmount   Decimal         @db.Decimal(10, 2)
   fulfillmentType FulfillmentType
+  cancellationPolicy CancellationPolicy @default(FLEXIBLE)
   status          ListingStatus   @default(DRAFT)
   createdAt       DateTime        @default(now())
   
   bookings Booking[]
   images       ListingImage[]
   pricingTiers PricingTier[]
+  reviews      Review[]
 
   owner    OwnerProfile @relation(fields: [ownerId], references: [id])
   category Category     @relation(fields: [categoryId], references: [id])
@@ -192,18 +204,72 @@ model Booking {
   id          String        @id @default(uuid())
   renterId    String
   listingId   String
+  orderId     String?
+  eventId     String?
   quantity    Int
   startDate   DateTime      @db.Date
   endDate     DateTime      @db.Date
   status      BookingStatus @default(PAYMENT_PENDING)
   totalPrice  Decimal       @db.Decimal(10, 2)
   createdAt   DateTime      @default(now())
-  
+
   payment     Payment?
   depositHold DepositHold?
   payout      Payout?
+  messages    Message[]
+  review      Review?
   renter  User    @relation(fields: [renterId], references: [id])
   listing Listing @relation(fields: [listingId], references: [id])
+  order   Order?  @relation(fields: [orderId], references: [id])
+  event   Event?  @relation(fields: [eventId], references: [id], onDelete: SetNull)
+}
+
+model Event {
+  id        String   @id @default(uuid())
+  renterId  String
+  name      String
+  eventDate DateTime @db.Date
+  createdAt DateTime @default(now())
+
+  renter   User      @relation(fields: [renterId], references: [id])
+  bookings Booking[]
+}
+
+model Order {
+  id                String        @id @default(uuid())
+  renterId          String
+  providerReference String        @unique
+  totalAmount       Decimal       @db.Decimal(10, 2)
+  status            PaymentStatus @default(PENDING)
+  createdAt         DateTime      @default(now())
+
+  renter   User      @relation(fields: [renterId], references: [id])
+  bookings Booking[]
+}
+
+model Review {
+  id         String   @id @default(uuid())
+  bookingId  String   @unique
+  listingId  String
+  reviewerId String
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  booking  Booking @relation(fields: [bookingId], references: [id])
+  listing  Listing @relation(fields: [listingId], references: [id])
+  reviewer User    @relation(fields: [reviewerId], references: [id])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  bookingId String
+  senderId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+  sender  User    @relation(fields: [senderId], references: [id])
 }
 
 model Payment {
@@ -219,13 +285,14 @@ model Payment {
 
 
 model DepositHold {
-  id                String            @id @default(uuid())
-  bookingId         String            @unique
-  amount            Decimal           @db.Decimal(10, 2)
-  status            DepositHoldStatus @default(HELD)
-  autoReleaseAt     DateTime
-  providerReference String?
-  refundReference   String?
+  id                      String            @id @default(uuid())
+  bookingId               String            @unique
+  amount                  Decimal           @db.Decimal(10, 2)
+  status                  DepositHoldStatus @default(HELD)
+  autoReleaseAt           DateTime
+  providerReference       String?
+  refundReference         String?
+  renterConfirmedReturnAt DateTime?
 
   booking Booking  @relation(fields: [bookingId], references: [id])
   dispute Dispute?

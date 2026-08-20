@@ -8,6 +8,10 @@ import { createOwnerProfileSchema } from "../types/owner";
 import { createListingSchema, updateListingSchema, browseListingsSchema } from "../types/listing";
 import { createBookingSchema } from "../types/booking";
 import { resolveDisputeSchema } from "../types/dispute";
+import { sendMessageSchema } from "../types/message";
+import { createReviewSchema } from "../types/review";
+import { createOrderSchema, createRecurringOrderSchema } from "../types/order";
+import { createEventSchema } from "../types/event";
 
 const registry = new OpenAPIRegistry();
 
@@ -394,6 +398,21 @@ registry.registerPath({
 
 registry.registerPath({
   method: "post",
+  path: "/bookings/{id}/return",
+  tags: ["Bookings"],
+  summary: "Renter confirms they've returned the item — re-anchors the deposit auto-release countdown to this moment",
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.uuid() }) },
+  responses: {
+    200: { description: "Return confirmed" },
+    403: { description: "You are not the renter for this booking" },
+    404: { description: "Booking or deposit not found" },
+    409: { description: "Already confirmed, or deposit is no longer held" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
   path: "/bookings/{id}/confirm-return",
   tags: ["Bookings"],
   summary: "Owner confirms item was returned undamaged — releases the deposit via refund",
@@ -487,6 +506,249 @@ registry.registerPath({
     403: { description: "Requires admin privileges" },
     404: { description: "Payout not found" },
     409: { description: "Payout already marked as paid" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/bookings/{id}/messages",
+  tags: ["Messages"],
+  summary: "Send a message on a booking's thread (renter or the listing's owner only)",
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.uuid() }),
+    body: { content: { "application/json": { schema: sendMessageSchema } } },
+  },
+  responses: {
+    201: { description: "Message sent" },
+    403: { description: "You are not a participant in this booking" },
+    404: { description: "Booking not found" },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/bookings/{id}/messages",
+  tags: ["Messages"],
+  summary: "List all messages on a booking's thread (renter or the listing's owner only)",
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.uuid() }),
+  },
+  responses: {
+    200: { description: "Array of messages, oldest first" },
+    403: { description: "You are not a participant in this booking" },
+    404: { description: "Booking not found" },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/messages/inbox",
+  tags: ["Messages"],
+  summary: "List the current user's active conversations (as renter or owner), most recent first",
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description:
+        "Array of bookings with at least one message, each including listing/renter and the latest message",
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/bookings/{id}/reviews",
+  tags: ["Reviews"],
+  summary: "Leave a review for a completed booking (renter only, one per booking)",
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.uuid() }),
+    body: { content: { "application/json": { schema: createReviewSchema } } },
+  },
+  responses: {
+    201: { description: "Review created" },
+    403: { description: "You are not the renter for this booking" },
+    404: { description: "Booking not found" },
+    409: {
+      description:
+        "Booking isn't finished yet (deposit not resolved), or has already been reviewed",
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/bookings/{id}/cancel",
+  tags: ["Bookings"],
+  summary: "Cancel a booking (renter only) — refund depends on the listing's cancellation policy window",
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.uuid() }) },
+  responses: {
+    200: {
+      description:
+        "Booking cancelled. Deposit is always refunded; the rental fee is refunded only if cancelled outside the listing's cancellation policy window (FLEXIBLE: 24h, MODERATE: 72h, STRICT: 168h before start)",
+    },
+    403: { description: "You are not the renter for this booking" },
+    404: { description: "Booking not found" },
+    409: { description: "Already cancelled, or the booking has already started" },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/listings/{id}/reviews",
+  tags: ["Reviews"],
+  summary: "List reviews for a listing, with average rating and count",
+  request: {
+    params: z.object({ id: z.uuid() }),
+  },
+  responses: {
+    200: { description: "{ averageRating, count, reviews: [...] }" },
+    404: { description: "Listing not found" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/orders",
+  tags: ["Orders"],
+  summary: "Bundled checkout — book multiple listings (potentially from different owners) in one order with a single combined Paystack charge",
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: { content: { "application/json": { schema: createOrderSchema } } },
+  },
+  responses: {
+    201: {
+      description:
+        "Order created with one booking per item, all PAYMENT_PENDING until the shared charge is confirmed",
+    },
+    400: { description: "One of the listings is not currently bookable" },
+    404: { description: "One of the listings was not found" },
+    409: {
+      description:
+        "Insufficient stock for one of the items, or a conflicting concurrent booking — client should retry",
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/orders/recurring",
+  tags: ["Orders"],
+  summary: "Book the same listing on a repeating schedule (weekly/monthly), paid upfront as one order",
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: { content: { "application/json": { schema: createRecurringOrderSchema } } },
+  },
+  responses: {
+    201: {
+      description:
+        "Order created with one booking per occurrence, all under a single combined Paystack charge",
+    },
+    400: { description: "The listing is not currently bookable" },
+    404: { description: "Listing not found" },
+    409: {
+      description:
+        "Insufficient stock for one of the occurrences, or a conflicting concurrent booking — client should retry",
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/orders/{id}",
+  tags: ["Orders"],
+  summary: "Get an order and its bookings",
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.uuid() }),
+  },
+  responses: {
+    200: { description: "Order with its bookings and listing details" },
+    403: { description: "This order does not belong to you" },
+    404: { description: "Order not found" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/events",
+  tags: ["Events"],
+  summary: "Create a named event to group bookings under (e.g. \"Sarah's Wedding\")",
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: { content: { "application/json": { schema: createEventSchema } } },
+  },
+  responses: {
+    201: { description: "Event created" },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/events",
+  tags: ["Events"],
+  summary: "List the current user's events, each with its bookings and combined total cost",
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { description: "Array of events, ordered by event date" },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/events/{id}",
+  tags: ["Events"],
+  summary: "Get an event with its bookings and combined total cost",
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.uuid() }) },
+  responses: {
+    200: { description: "Event with bookings and totalCost" },
+    403: { description: "This event does not belong to you" },
+    404: { description: "Event not found" },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/events/{id}",
+  tags: ["Events"],
+  summary: "Delete an event (unlinks its bookings, does not delete them)",
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.uuid() }) },
+  responses: {
+    204: { description: "Event deleted" },
+    403: { description: "This event does not belong to you" },
+    404: { description: "Event not found" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/events/{id}/bookings/{bookingId}",
+  tags: ["Events"],
+  summary: "Attach an existing booking to an event",
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.uuid(), bookingId: z.uuid() }) },
+  responses: {
+    200: { description: "Booking attached to the event" },
+    403: { description: "The event or the booking does not belong to you" },
+    404: { description: "Event or booking not found" },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/events/{id}/bookings/{bookingId}",
+  tags: ["Events"],
+  summary: "Detach a booking from an event",
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.uuid(), bookingId: z.uuid() }) },
+  responses: {
+    200: { description: "Booking detached from the event" },
+    403: { description: "This event does not belong to you" },
+    404: { description: "Event not found, or the booking is not part of this event" },
   },
 });
 

@@ -33,6 +33,7 @@ export const bookingRepository = {
     data: {
       renterId: string;
       listingId: string;
+      orderId?: string;
       quantity: number;
       startDate: Date;
       endDate: Date;

@@ -32,4 +32,15 @@ export const depositHoldRepository = {
       where: { status: DepositHoldStatus.HELD, autoReleaseAt: { lte: new Date() } },
     });
   },
+
+  markRenterConfirmed(id: string) {
+    // Re-anchor the auto-release window to the actual return moment —
+    // the original autoReleaseAt (set at booking creation) is just an
+    // estimate and can be wildly off from when the item really comes back.
+    const autoReleaseAt = new Date(Date.now() + AUTO_RELEASE_HOURS * 60 * 60 * 1000);
+    return prisma.depositHold.update({
+      where: { id },
+      data: { renterConfirmedReturnAt: new Date(), autoReleaseAt },
+    });
+  },
 };

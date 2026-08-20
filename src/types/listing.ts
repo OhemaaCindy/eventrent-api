@@ -11,6 +11,7 @@ export const createListingSchema = z.object({
   pricePerDay: z.number().positive(),
   depositAmount: z.number().nonnegative(),
   fulfillmentType: z.enum(["PICKUP", "DELIVERY", "BOTH"]),
+  cancellationPolicy: z.enum(["FLEXIBLE", "MODERATE", "STRICT"]).optional(),
 });
 
 export type CreateListingInput = z.infer<typeof createListingSchema>;
@@ -23,6 +24,7 @@ export const updateListingSchema = z.object({
   pricePerDay: z.number().positive().optional(),
   depositAmount: z.number().nonnegative().optional(),
   fulfillmentType: z.enum(["PICKUP", "DELIVERY", "BOTH"]).optional(),
+  cancellationPolicy: z.enum(["FLEXIBLE", "MODERATE", "STRICT"]).optional(),
   status: z.enum(["LIVE", "PAUSED"]).optional(),
 });
 

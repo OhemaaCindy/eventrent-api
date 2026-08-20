@@ -36,7 +36,42 @@ async function getAuthorizedBookingDeposit(userId: string, bookingId: string) {
   return depositHold;
 }
 
+async function getAuthorizedBookingDepositForRenter(userId: string, bookingId: string) {
+  const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+  if (!booking) {
+    throw new AppError(404, "BOOKING_NOT_FOUND", "Booking not found");
+  }
+
+  if (booking.renterId !== userId) {
+    throw new AppError(403, "NOT_BOOKING_RENTER", "You are not the renter for this booking");
+  }
+
+  const depositHold = await depositHoldRepository.findByBookingId(bookingId);
+  if (!depositHold) {
+    throw new AppError(404, "DEPOSIT_NOT_FOUND", "No deposit hold found for this booking");
+  }
+  if (depositHold.status !== DepositHoldStatus.HELD) {
+    throw new AppError(
+      409,
+      "DEPOSIT_NOT_HELD",
+      `Deposit is already ${depositHold.status.toLowerCase()}`
+    );
+  }
+
+  return depositHold;
+}
+
 export const depositService = {
+  async confirmReturnByRenter(userId: string, bookingId: string) {
+    const depositHold = await getAuthorizedBookingDepositForRenter(userId, bookingId);
+
+    if (depositHold.renterConfirmedReturnAt) {
+      throw new AppError(409, "ALREADY_CONFIRMED", "You have already confirmed this return");
+    }
+
+    return depositHoldRepository.markRenterConfirmed(depositHold.id);
+  },
+
   async confirmReturn(userId: string, bookingId: string) {
     const depositHold = await getAuthorizedBookingDeposit(userId, bookingId);
 

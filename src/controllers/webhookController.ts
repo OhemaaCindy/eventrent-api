@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import { env } from "../lib/env";
 import { verifyTransaction } from "../lib/paystack";
 import { paymentRepository } from "../repositories/paymentRepository";
+import { orderRepository } from "../repositories/orderRepository";
 import { prisma } from "../lib/prisma";
 import { BookingStatus, PaymentStatus } from "../generated/prisma/client";
 
@@ -51,6 +52,57 @@ export const webhookController = {
     }
 
     const reference = event.data.reference as string;
+
+    // Bundled multi-item checkouts share one Paystack reference across
+    // several bookings (see orderService.ts) — handle that shape first,
+    // and fall through to the single-booking path below otherwise.
+    const order = await orderRepository.findByReference(reference);
+    if (order) {
+      if (order.status === PaymentStatus.PAID) {
+        return;
+      }
+
+      const verified = await verifyTransaction(reference);
+      if (verified.status !== "success") {
+        return;
+      }
+
+      // A renter can cancel one booking within a multi-item order while the
+      // others are still in flight — don't resurrect a cancelled booking
+      // just because the shared order payment eventually confirms.
+      const orderBookings = (
+        await prisma.booking.findMany({
+          where: { orderId: order.id },
+          include: { listing: true },
+        })
+      ).filter((booking) => booking.status !== BookingStatus.CANCELLED);
+
+      await prisma.$transaction([
+        prisma.order.update({
+          where: { id: order.id },
+          data: { status: PaymentStatus.PAID },
+        }),
+        ...orderBookings.map((booking) =>
+          prisma.booking.update({
+            where: { id: booking.id },
+            data: { status: BookingStatus.CONFIRMED },
+          })
+        ),
+        ...orderBookings.map((booking) => {
+          const { payoutAmount, commissionAmount } = splitCommission(booking.totalPrice);
+          return prisma.payout.create({
+            data: {
+              bookingId: booking.id,
+              ownerId: booking.listing.ownerId,
+              amount: payoutAmount,
+              commissionAmount,
+            },
+          });
+        }),
+      ]);
+      return;
+    }
+
     const payment = await paymentRepository.findByReference(reference);
 
     if (!payment || payment.status === PaymentStatus.PAID) {
@@ -70,7 +122,9 @@ export const webhookController = {
       where: { id: payment.bookingId },
       include: { listing: true },
     });
-    if (!booking) {
+    // Don't resurrect a booking the renter already cancelled while this
+    // payment was still in flight.
+    if (!booking || booking.status === BookingStatus.CANCELLED) {
       return;
     }
 

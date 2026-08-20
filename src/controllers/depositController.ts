@@ -4,6 +4,18 @@ import { openDisputeSchema } from "../types/dispute";
 import type { AuthenticatedRequest } from "../middleware/authMiddleware";
 
 export const depositController = {
+  async confirmReturnByRenter(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId as string;
+      const bookingId = req.params.id as string;
+
+      const result = await depositService.confirmReturnByRenter(userId, bookingId);
+      res.status(200).json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
   async confirmReturn(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.userId as string;

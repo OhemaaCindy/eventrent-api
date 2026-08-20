@@ -13,6 +13,9 @@ import { categoryRoutes } from "./routes/categoryRoutes";
 import { bookingRoutes } from "./routes/bookingRoutes";
 import { webhookRoutes } from "./routes/webhookRoutes";
 import { adminRoutes } from "./routes/adminRoutes";
+import { messageRoutes } from "./routes/messageRoutes";
+import { orderRoutes } from "./routes/orderRoutes";
+import { eventRoutes } from "./routes/eventRoutes";
 
 export const app = express();
 
@@ -38,6 +41,9 @@ app.use("/listings", listingRoutes);
 app.use("/categories", categoryRoutes);
 app.use("/bookings", bookingRoutes);
 app.use("/admin", adminRoutes);
+app.use("/messages", messageRoutes);
+app.use("/orders", orderRoutes);
+app.use("/events", eventRoutes);
 
 // OpenAPI documentation
 const openApiDocument = generateOpenApiDocument();

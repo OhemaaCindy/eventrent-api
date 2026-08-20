@@ -27,4 +27,16 @@ export const bookingController = {
       next(err);
     }
   },
+
+  async cancel(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId as string;
+      const bookingId = req.params.id as string;
+
+      const result = await bookingService.cancelBooking(userId, bookingId);
+      res.status(200).json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
 };

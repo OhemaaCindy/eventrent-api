@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma";
-import { FulfillmentType, ListingStatus } from "../generated/prisma/client";
+import { CancellationPolicy, FulfillmentType, ListingStatus } from "../generated/prisma/client";
 
 export const listingRepository = {
   findCategoryById(categoryId: string) {
@@ -16,6 +16,7 @@ export const listingRepository = {
       pricePerDay: number;
       depositAmount: number;
       fulfillmentType: FulfillmentType;
+      cancellationPolicy?: CancellationPolicy;
     },
     status: ListingStatus
   ) {
@@ -61,6 +62,7 @@ update(id: string, data: Partial<{
   pricePerDay: number;
   depositAmount: number;
   fulfillmentType: FulfillmentType;
+  cancellationPolicy: CancellationPolicy;
   status: ListingStatus;
 }>) {
   return prisma.listing.update({ where: { id }, data });
