@@ -1,0 +1,118 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/fraunces";
+@import "@fontsource-variable/inter";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-sans: 'Inter Variable', sans-serif;
+    --font-heading: 'Fraunces Variable', serif;
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+    --color-pending: var(--pending);
+    --color-pending-foreground: var(--pending-foreground);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+    --rose-50: #fde8ea;
+    --rose-100: #fbd0d5;
+    --rose-200: #f6a2aa;
+    --rose-300: #f27380;
+    --rose-400: #ee4455;
+    --rose-500: #e9162b;
+    --rose-600: #bb1122;
+    --rose-700: #8c0d1a;
+    --rose-800: #5d0911;
+    --rose-900: #2f0409;
+    --rose-950: #210306;
+
+    --background: #F7F6F6;
+    --foreground: #1C1A1A;
+    --card: #FFFFFF;
+    --card-foreground: #1C1A1A;
+    --popover: #FFFFFF;
+    --popover-foreground: #1C1A1A;
+    --primary: #bb1122;
+    --primary-foreground: #FFFFFF;
+    --secondary: #F1EEEE;
+    --secondary-foreground: #1C1A1A;
+    --muted: #F1EEEE;
+    --muted-foreground: #767171;
+    --accent: #fbd0d5;
+    --accent-foreground: #5d0911;
+    --success: #16A34A;
+    --success-foreground: #FFFFFF;
+    --pending: #D9A441;
+    --pending-foreground: #1C1A1A;
+    --destructive: #A63D2F;
+    --destructive-foreground: #FFFFFF;
+    --border: #E7E4E4;
+    --input: #E7E4E4;
+    --ring: #bb1122;
+    --radius: 0.75rem;
+}
+
+.dark {
+    --background: #201C18;
+    --foreground: #F2ECE3;
+    --card: #2A2521;
+    --card-foreground: #F2ECE3;
+    --popover: #2A2521;
+    --popover-foreground: #F2ECE3;
+    --primary: #ee4455;
+    --primary-foreground: #201C18;
+    --secondary: #332D27;
+    --secondary-foreground: #F2ECE3;
+    --muted: #332D27;
+    --muted-foreground: #B0A79C;
+    --accent: #fbd0d5;
+    --accent-foreground: #5d0911;
+    --success: #4ADE80;
+    --success-foreground: #0B2818;
+    --pending: #D9A441;
+    --pending-foreground: #201C18;
+    --destructive: #C1543F;
+    --destructive-foreground: #201C18;
+    --border: rgba(242, 236, 227, 0.12);
+    --input: rgba(242, 236, 227, 0.16);
+    --ring: #ee4455;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground font-sans;
+    }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+    }
+}
